@@ -6,7 +6,6 @@ export interface UserSchema extends mongoose.Document {
   email: string;
   fullname: string;
   password: string;
-  refreshToken?: string;
   verifyCode?: string;
   verifyCodeExpiry?: Date;
   isVerified: boolean;
@@ -55,9 +54,6 @@ const userSchema = new mongoose.Schema<UserSchema>(
     isAcceptiongMessage: {
       type: Boolean,
       default: true,
-    },
-    refreshToken: {
-      type: String,
     },
     messages: [messageSchema],
   },
