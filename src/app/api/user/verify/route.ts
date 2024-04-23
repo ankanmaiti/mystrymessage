@@ -18,12 +18,15 @@ export const PATCH = asyncHandler(async (req: Request) => {
   const verifyCode = Math.floor(1e5 + Math.random() * 9e5).toString();
 
   const verifyCodeExpiry = new Date();
-  verifyCodeExpiry.setTime(verifyCodeExpiry.getMinutes() + 10);
+  verifyCodeExpiry.setMinutes(verifyCodeExpiry.getMinutes() + 10);
 
   // store verification code in user document
   const user = await UserModel.findOneAndUpdate<UserSchema>(
     {
-      $or: [{ username }, { email }],
+      $or: [
+        { username, isVerified: false },
+        { email, isVerified: false },
+      ],
     },
     {
       verifyCode,
@@ -32,7 +35,7 @@ export const PATCH = asyncHandler(async (req: Request) => {
   ).select("username email isVerified verifyCode");
 
   if (!user) {
-    throw new ApiError(500, "Something went wrong while fetching user data");
+    throw new ApiError(400, "user already verified");
   }
 
   // send verifyCode (otp) to the user's email
@@ -54,4 +57,61 @@ export const PATCH = asyncHandler(async (req: Request) => {
     emailResponse,
     "Successfully send otp to the email",
   );
+});
+
+
+
+// verify user via input otp
+export const POST = asyncHandler(async (req: Request) => {
+  await dbConnect();
+
+  const { otp, username } = await req.json();
+
+  if (!otp || !username) {
+    throw new ApiError(400, "otp & username is required");
+  }
+
+  const user = await UserModel.findOne(
+    { username },
+    {
+      username: 1,
+      email: 1,
+      isVerified: 1,
+      verifyCode: 1,
+      verifyCodeExpiry: 1,
+    },
+  );
+
+  if (!user) {
+    throw new ApiError(500, "Something went wrong while fetching user");
+  }
+
+  if (user.isVerified) {
+    throw new ApiError(400, "user already verified");
+  }
+
+  if (user.verifyCode != otp) {
+    throw new ApiError(309, "Invalid OTP");
+  }
+
+  const expiryDate = new Date(user.verifyCodeExpiry || "");
+  const now = new Date();
+
+  if (expiryDate < now) {
+    throw new ApiError(309, "OTP expired");
+  }
+
+  user.isVerified = true;
+  user.verifyCode = undefined;
+  user.verifyCodeExpiry = undefined;
+  const savedUser = await user.save();
+
+  if (!savedUser) {
+    throw new ApiError(
+      500,
+      "Something went wrong while updating user verification",
+    );
+  }
+
+  return new ApiResponse(200, user, "user successfully verified");
 });
