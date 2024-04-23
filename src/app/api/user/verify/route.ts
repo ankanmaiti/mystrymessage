@@ -40,21 +40,25 @@ export const PATCH = asyncHandler(async (req: Request) => {
 
   // send verifyCode (otp) to the user's email
   const emailResponse = await sendVerificationEmail(
-    user.username,
     user.email,
-    user.verifyCode as string,
+    user.username,
+    verifyCode.toString(),
   );
 
-  if (!emailResponse.success) {
+  if (!emailResponse) {
     throw new ApiError(
       500,
-      "Something went wrong while sending verification code to email",
+      "Something went wrong while sending verification email",
     );
+  }
+
+  if (emailResponse?.error) {
+    throw new ApiError(422, emailResponse.error.message);
   }
 
   return new ApiResponse(
     200,
-    emailResponse,
+    emailResponse.data,
     "Successfully send otp to the email",
   );
 });

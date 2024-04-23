@@ -15,12 +15,10 @@ function JsonResponse(res: ApiResponse | ApiError) {
   );
 }
 
-export function asyncHandler(
-  requestHandler: (req: Request) => Promise<ApiResponse>,
-) {
-  return async (req: Request) => {
+export function asyncHandler(asyncCallback: (...args: any[]) => Promise<ApiResponse>) {
+  return async (...args: any[]) => {
     try {
-      const res: ApiResponse = await requestHandler(req);
+      const res: ApiResponse = await asyncCallback(...args);
       return JsonResponse(res);
     } catch (err) {
       // got ApiError then send response
