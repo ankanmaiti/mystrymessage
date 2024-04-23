@@ -1,18 +1,18 @@
 import { z } from "zod";
 import {
-  emailSchema,
-  fullnameSchema,
-  passwordSchema,
-  usernameSchema,
-} from "./user.Schema";
+  emailValidation,
+  fullnameValidation,
+  passwordValidation,
+  usernameValidation,
+} from "./user.schema";
 
 export const SignupSchema = z
   .object({
-    username: usernameSchema,
-    fullname: fullnameSchema,
-    email: emailSchema,
-    password: passwordSchema,
-    confirmPassword: passwordSchema,
+    username: usernameValidation,
+    fullname: fullnameValidation,
+    email: emailValidation,
+    password: passwordValidation,
+    confirmPassword: passwordValidation,
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords must match!",

@@ -1,12 +1,16 @@
 import { z } from "zod";
-import { emailSchema, passwordSchema, usernameSchema } from "./user.Schema";
+import {
+  emailValidation,
+  passwordValidation,
+  usernameValidation,
+} from "./user.schema";
 
 export const LoginSchema = z.object({
-  identifier: z.union([usernameSchema, emailSchema]).refine(
+  identifier: z.union([usernameValidation, emailValidation]).refine(
     (value) => {
       // Check if the value is strictly a username or an email
-      const isUsername = usernameSchema.safeParse(value).success;
-      const isEmail = emailSchema.safeParse(value).success;
+      const isUsername = usernameValidation.safeParse(value).success;
+      const isEmail = emailValidation.safeParse(value).success;
       return isUsername !== isEmail; // Ensure it's strictly one or the other
     },
     {
@@ -14,5 +18,5 @@ export const LoginSchema = z.object({
       path: ["usernameOrEmail"], // Specifies the path of the error
     },
   ),
-  password: passwordSchema,
+  password: passwordValidation,
 });
