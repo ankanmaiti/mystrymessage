@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { MessageSchema, messageSchema } from "./message.model";
 
 export interface UserSchema extends mongoose.Document {
   username: string;
@@ -10,7 +9,6 @@ export interface UserSchema extends mongoose.Document {
   verifyCodeExpiry?: Date;
   isVerified: boolean;
   isAcceptiongMessage: boolean;
-  messages: MessageSchema[];
 }
 
 const userSchema = new mongoose.Schema<UserSchema>(
@@ -55,7 +53,6 @@ const userSchema = new mongoose.Schema<UserSchema>(
       type: Boolean,
       default: true,
     },
-    messages: [messageSchema],
   },
   {
     timestamps: true,

@@ -1,14 +1,20 @@
-import { Schema, model, Document } from "mongoose";
+import mongoose from "mongoose";
 
-export interface MessageSchema extends Document {
+interface MessageSchema extends mongoose.Document {
   content: string;
+  owner: mongoose.ObjectId;
 }
 
-export const messageSchema = new Schema<MessageSchema>(
+export const messageSchema = new mongoose.Schema<MessageSchema>(
   {
     content: {
       type: String,
       required: true,
+    },
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      index: true
     },
   },
   {
@@ -16,3 +22,6 @@ export const messageSchema = new Schema<MessageSchema>(
   },
 );
 
+export const Message =
+  (mongoose.models.Message as mongoose.Model<MessageSchema>) ||
+  mongoose.model<MessageSchema>("Message", messageSchema);
