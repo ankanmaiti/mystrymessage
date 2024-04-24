@@ -4,6 +4,10 @@ import { asyncHandler } from "@/helpers/asyncHandler";
 import { sendVerificationEmail } from "@/helpers/sendVerificationEmail";
 import dbConnect from "@/lib/dbConnect";
 import UserModel, { UserSchema } from "@/models/user.model";
+import {
+  otpValidation,
+  usernameValidation,
+} from "@/schemas/user.schema";
 
 export const PATCH = asyncHandler(async (req: Request) => {
   await dbConnect();
@@ -15,7 +19,12 @@ export const PATCH = asyncHandler(async (req: Request) => {
   }
 
   // genarate verify code with expiry date
-  const verifyCode = Math.floor(1e5 + Math.random() * 9e5).toString();
+  const randomCode = Math.floor(1e5 + Math.random() * 9e5).toString();
+  const otp = otpValidation.safeParse(randomCode);
+
+  if (!otp.success) {
+    throw new ApiError(500, "Something went wrong while generate otp");
+  }
 
   const verifyCodeExpiry = new Date();
   verifyCodeExpiry.setMinutes(verifyCodeExpiry.getMinutes() + 10);
@@ -29,7 +38,7 @@ export const PATCH = asyncHandler(async (req: Request) => {
       ],
     },
     {
-      verifyCode,
+      verifyCode: otp.data,
       verifyCodeExpiry,
     },
   ).select("username email isVerified verifyCode");
@@ -42,7 +51,7 @@ export const PATCH = asyncHandler(async (req: Request) => {
   const emailResponse = await sendVerificationEmail(
     user.email,
     user.username,
-    verifyCode.toString(),
+    otp.data,
   );
 
   if (!emailResponse) {
@@ -61,4 +70,64 @@ export const PATCH = asyncHandler(async (req: Request) => {
     emailResponse.data,
     "Successfully send otp to the email",
   );
+});
+
+export const POST = asyncHandler(async (req: Request) => {
+  dbConnect();
+
+  const body = await req.json();
+
+  const username = usernameValidation.safeParse(body.username);
+  const otp = otpValidation.safeParse(body.otp);
+
+  if (!username.success) {
+    throw new ApiError(400, username.error.format()._errors.toString());
+  }
+
+  if (!otp.success) {
+    throw new ApiError(400, otp.error.format()._errors.toString());
+  }
+
+  const user = await UserModel.findOne(
+    {
+      username: username.data,
+    },
+    {
+      isVerified: 1,
+      verifyCode: 1,
+      verifyCodeExpiry: 1,
+    },
+  );
+
+  if (!user) {
+    throw new ApiError(500, "something went wrong while fetching user");
+  }
+
+  if (user.isVerified) {
+    throw new ApiError(300, "user already verified");
+  }
+
+  const isOtpExpired = new Date(user.verifyCodeExpiry as Date) < new Date();
+
+  if (isOtpExpired) {
+    throw new ApiError(400, "OTP has been expired");
+  }
+
+  if (otp.data != user.verifyCode) {
+    throw new ApiError(400, "Invalid OTP");
+  }
+
+  user.isVerified = true;
+  user.verifyCode = undefined;
+  user.verifyCodeExpiry = undefined;
+  const savedUserResponse = await user.save();
+
+  if (!savedUserResponse) {
+    throw new ApiError(
+      500,
+      "Something went wrong while saved user verification",
+    );
+  }
+
+  return new ApiResponse(200, {}, "user successfully verified");
 });

@@ -16,3 +16,8 @@ export const emailValidation = z.string().email("Invalid email address");
 export const passwordValidation = z
   .string()
   .min(8, "password must be at least 8 characters");
+
+export const otpValidation = z
+  .string()
+  .length(6, "otp must be 6 char long")
+  .regex(/^[0-9]/, "otp only accept numbers");

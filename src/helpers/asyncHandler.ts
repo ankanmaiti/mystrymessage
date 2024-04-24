@@ -15,7 +15,7 @@ function JsonResponse(res: any) {
   if (!resIsApiResponse && !resIsApiError) {
     console.log("unknown response type : ", typeof res);
     console.log("response : ", res);
-    throw new Error("unknown response type");
+    return Response.json(res)
   }
 
   // default response
